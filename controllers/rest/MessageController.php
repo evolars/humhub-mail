@@ -42,6 +42,53 @@ class MessageController extends BaseController
     }
 
     /**
+     * Evolars: caixa de entrada do usuário, mais recentes primeiro, com participantes,
+     * última mensagem e se há algo não lido.
+     */
+    public function actionInbox()
+    {
+        $me = Yii::$app->user->id;
+        $query = Message::find()
+            ->innerJoin('user_message', 'message_id = id')
+            ->where(['user_id' => $me])
+            ->orderBy(['message.updated_at' => SORT_DESC]);
+        $pagination = $this->handlePagination($query);
+        $results = [];
+        foreach ($query->all() as $message) {
+            $last = $message->getLastEntry();
+            $um = $message->getUserMessage($me);
+            $users = [];
+            foreach ($message->getUsers()->all() as $u) {
+                $users[] = ['id' => $u->id, 'username' => $u->username, 'display_name' => $u->displayName];
+            }
+            $results[] = RestDefinitions::getMessage($message) + [
+                'users' => $users,
+                'unread' => $um ? $um->isUnread() : false,
+                'last_entry' => $last ? RestDefinitions::getMessageEntry($last) : null,
+            ];
+        }
+        return $this->returnPagination($query, $pagination, $results);
+    }
+
+    /**
+     * Evolars: últimas mensagens de uma conversa (ordem cronológica) e marca como lida.
+     */
+    public function actionRecent($id, $limit = 50)
+    {
+        $message = static::getMessage($id);
+        $entries = $message->getEntries()->orderBy(['id' => SORT_DESC])->limit(min(200, (int) $limit))->all();
+        $message->seen(Yii::$app->user->id);
+        $users = [];
+        foreach ($message->getUsers()->all() as $u) {
+            $users[] = ['id' => $u->id, 'username' => $u->username, 'display_name' => $u->displayName];
+        }
+        return RestDefinitions::getMessage($message) + [
+            'users' => $users,
+            'entries' => array_map([RestDefinitions::class, 'getMessageEntry'], array_reverse($entries)),
+        ];
+    }
+
+    /**
      * Get a mail conversation by id
      *
      * @param $id

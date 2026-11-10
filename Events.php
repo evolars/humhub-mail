@@ -242,6 +242,9 @@ class Events
 
             // Conversations
             ['pattern' => 'mail', 'route' => 'mail/rest/message/index', 'verb' => 'GET'],
+            // Evolars
+            ['pattern' => 'mail/inbox', 'route' => 'mail/rest/message/inbox', 'verb' => 'GET'],
+            ['pattern' => 'mail/<id:\d+>/recent', 'route' => 'mail/rest/message/recent', 'verb' => 'GET'],
             ['pattern' => 'mail/<id:\d+>', 'route' => 'mail/rest/message/view', 'verb' => 'GET'],
             ['pattern' => 'mail', 'route' => 'mail/rest/message/create', 'verb' => 'POST'],
 
